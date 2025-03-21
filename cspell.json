@@ -1,10 +1,13 @@
 {
   "enabledFileTypes": {
-    "typescript": true
+    "typescript": true,
+    "json": true,
+    "jsonc": true,
+    "yaml": true
   },
   "ignorePaths": [
     ".devcontainer/devcontainer.json",
     ".devcontainer/Dockerfile"
   ],
-  "words": ["gitmoji"]
+  "words": ["gitmoji", "nodenext"]
 }
