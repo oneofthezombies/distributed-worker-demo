@@ -28,7 +28,6 @@ RUN echo '# JavaScript' >> ~/.bashrc && \
     volta install \
     node@22.13.0 \
     npm@11.0.0 \
-    gitmoji-cli@9.5.0 \
     sort-package-json@3.0.0 \
     && echo '' >> ~/.bashrc
 

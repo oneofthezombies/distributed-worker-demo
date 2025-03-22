@@ -1,14 +1,7 @@
 {
   "name": "worker",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
-    "dev": "nodemon"
-  },
-  "nodemonConfig": {
-    "exec": "ts-node src/main.ts",
-    "ext": "ts",
-    "watch": [
-      "src"
-    ]
+    "dev": "tsx watch src/main.ts"
   }
 }

@@ -6,4 +6,4 @@ set -ex
 volta --version
 node --version
 npm --version
-gitmoji --version
+sort-package-json --version

@@ -4,22 +4,20 @@ services:
       context: ../
       dockerfile: .devcontainer/Dockerfile
     restart: 'no'
-    network_mode: host
+    ports:
+      - 3000:3000
     volumes:
       - ../:/work
-    ports:
-      - 8900:3000
 
   db:
     image: postgres:17.4-alpine3.21
     restart: 'no'
-    network_mode: host
+    ports:
+      - 5432:5432
     environment:
       POSTGRES_PASSWORD: postgres
     volumes:
       - db_data:/var/lib/postgresql/data
-    ports:
-      - 8910:5432
 
 volumes:
   db_data:
