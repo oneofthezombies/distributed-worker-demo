@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "@types/pg": "npm:@types/pg@^8.11.11",
+    "drizzle-kit": "npm:drizzle-kit@^0.30.5",
+    "drizzle-orm": "npm:drizzle-orm@^0.41.0",
+    "hono": "npm:hono@^4.7.5",
+    "pg": "npm:pg@^8.14.1"
+  },
+  "tasks": {
+    "dev": "deno run --env -NE main.ts",
+    "db:sync": "deno --env --node-modules-dir -RENS --allow-run npm:drizzle-kit push"
+  }
+}

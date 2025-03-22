@@ -22,14 +22,9 @@ RUN echo '' >> ~/.bashrc && \
     echo '################################################################################' >> ~/.bashrc && \
     echo '' >> ~/.bashrc
 
-ENV PATH="$HOME/.volta/bin:$PATH"
 RUN echo '# JavaScript' >> ~/.bashrc && \
-    curl https://get.volta.sh | bash && \
-    volta install \
-    node@22.13.0 \
-    npm@11.0.0 \
-    sort-package-json@3.0.0 \
-    && echo '' >> ~/.bashrc
+    curl -fsSL https://deno.land/install.sh | sh -s v2.2.5 -y && \
+    echo '' >> ~/.bashrc
 
 RUN echo '# Aliases' >> ~/.bashrc && \
     echo 'alias ll="ls -alhF --color=auto"' >> ~/.bashrc && \

@@ -2,11 +2,12 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "denoland.vscode-deno",
         "esbenp.prettier-vscode",
-        "streetsidesoftware.code-spell-checker",
-        "usernamehw.errorlens",
         "ms-azuretools.vscode-docker",
-        "redhat.vscode-yaml"
+        "redhat.vscode-yaml",
+        "streetsidesoftware.code-spell-checker",
+        "usernamehw.errorlens"
       ],
       "settings": {
         "[dockerfile]": {

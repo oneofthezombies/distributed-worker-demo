@@ -9,5 +9,5 @@
     ".devcontainer/devcontainer.json",
     ".devcontainer/Dockerfile"
   ],
-  "words": ["gitmoji", "nodenext"]
+  "words": ["nodenext", "dotenv"]
 }

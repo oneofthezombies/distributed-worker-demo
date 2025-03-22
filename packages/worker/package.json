@@ -1,7 +1,0 @@
-{
-  "name": "worker",
-  "type": "module",
-  "scripts": {
-    "dev": "tsx watch src/main.ts"
-  }
-}
