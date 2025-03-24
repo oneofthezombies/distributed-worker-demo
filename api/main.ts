@@ -11,6 +11,11 @@ import { Buffer } from "node:buffer";
 type Db = ReturnType<typeof drizzle>;
 
 const TOTAL_TASK_COUNT = 10;
+const MEASURE_INTERVAL_MS = 1000;
+
+// Measure log ingestion speed (byteLength/sec)
+let measureByteLength = 0;
+let measureIntervalId: number | null = null;
 
 await main();
 
@@ -79,7 +84,20 @@ async function main() {
     controller.abort();
   });
   const server = Deno.serve({ signal, port: 3000 }, app.fetch);
+
+  measureIntervalId = setInterval(() => {
+    console.log(
+      `Log byte length: ${Math.round(measureByteLength / 1024)} KB/sec`
+    );
+    measureByteLength = 0;
+  }, MEASURE_INTERVAL_MS);
+
   await server.finished;
+
+  if (measureIntervalId !== null) {
+    clearInterval(measureIntervalId);
+  }
+
   console.log("Server finished.");
   Deno.exit(0);
 }
@@ -143,6 +161,8 @@ async function addTaskLog(db: Db, taskId: number, taskLog: TaskLog) {
     index: taskLog.index,
     content: taskLog.content,
   } satisfies typeof taskLogsTable.$inferInsert);
+
+  measureByteLength += new TextEncoder().encode(taskLog.content).byteLength;
 }
 
 async function updateTaskStatus(
