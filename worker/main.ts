@@ -7,10 +7,11 @@ import { Readable } from "node:stream";
 import { gzip } from "node:zlib";
 import { Buffer } from "node:buffer";
 
-const API_URL = "http://localhost:3000";
 const EMPTY_TASK_DELAY_MS = 5000;
 const SEND_TASK_LOG_THRESHOLD_LENGTH = 8 * 1024;
 const SEND_TASK_LOG_INTERVAL_MS = 5000;
+
+const env = parseEnv();
 
 const Task = z.object({
   id: z.number().int(),
@@ -31,7 +32,7 @@ async function main() {
   });
 
   while (!shutdownRequested) {
-    const response = await fetch(`${API_URL}/tasks/pull`, {
+    const response = await fetch(`${env.apiUrl}/tasks/pull`, {
       method: "POST",
     });
     const taskRaw = await response.json();
@@ -105,14 +106,21 @@ function runTask(signal: AbortSignal, task: Task) {
           };
           lines = [];
           length = 0;
-          const buffer = await gzipAsync(JSON.stringify(taskLog));
-          const response = await fetch(`${API_URL}/tasks/${task.id}/logs`, {
+
+          const stringified = JSON.stringify(taskLog);
+          const headers = new Headers([["Content-Type", "application/json"]]);
+          let body;
+          if (env.enableLogCompression) {
+            headers.set("Content-Encoding", "gzip");
+            body = await gzipAsync(stringified);
+          } else {
+            body = stringified;
+          }
+
+          const response = await fetch(`${env.apiUrl}/tasks/${task.id}/logs`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Content-Encoding": "gzip",
-            },
-            body: buffer,
+            headers,
+            body,
           });
           if (!response.ok) {
             console.error(response.status, await response.text());
@@ -157,7 +165,7 @@ function gzipAsync(input: string): Promise<Buffer> {
 }
 
 async function updateTaskStatus(taskId: number, status: ResultTaskStatus) {
-  const response = await fetch(`${API_URL}/tasks/${taskId}/status`, {
+  const response = await fetch(`${env.apiUrl}/tasks/${taskId}/status`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -173,4 +181,22 @@ async function updateTaskStatus(taskId: number, status: ResultTaskStatus) {
       await response.text()
     );
   }
+}
+
+function parseEnv() {
+  const apiUrl = Deno.env.get("API_URL");
+  if (!apiUrl) {
+    throw new Error("Please define API_URL environment variable.");
+  }
+
+  const enableLogCompression = Deno.env.get("ENABLE_LOG_COMPRESSION");
+  if (!enableLogCompression) {
+    throw new Error(
+      "Please define ENABLE_LOG_COMPRESSION environment variable."
+    );
+  }
+  return {
+    apiUrl,
+    enableLogCompression: enableLogCompression === "true",
+  };
 }

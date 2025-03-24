@@ -42,6 +42,7 @@ async function main() {
       const { taskId } = c.req.valid("param");
       const { status } = c.req.valid("json");
       await updateTaskStatus(db, taskId, status);
+      return c.json({});
     }
   );
   app.post(
@@ -55,13 +56,16 @@ async function main() {
     async (c) => {
       const { taskId } = c.req.valid("param");
       const encoding = c.req.header("Content-Encoding");
-      if (encoding !== "gzip") {
-        return c.text(`Unexpected "Content-Encoding": ${encoding}`, 400);
+
+      let taskLogRaw;
+      if (encoding === "gzip") {
+        const buffer = await c.req.arrayBuffer();
+        const decompressed = await gunzipAsync(buffer);
+        taskLogRaw = JSON.parse(new TextDecoder().decode(decompressed));
+      } else {
+        taskLogRaw = await c.req.json();
       }
 
-      const buffer = await c.req.arrayBuffer();
-      const decompressed = await gunzipAsync(buffer);
-      const taskLogRaw = JSON.parse(new TextDecoder().decode(decompressed));
       const taskLog = await TaskLog.parseAsync(taskLogRaw);
       await addTaskLog(db, taskId, taskLog);
       return c.json({});
@@ -83,7 +87,7 @@ async function main() {
 function createDb(): Db {
   const url = Deno.env.get("DATABASE_URL");
   if (!url) {
-    throw new Error("Please define DATABASE_URL.");
+    throw new Error("Please define DATABASE_URL environment variable.");
   }
   return drizzle(url);
 }
