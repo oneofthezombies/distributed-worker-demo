@@ -28,3 +28,19 @@ export const tasksTable = pgTable("tasks", {
     .notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
+
+export const taskLogsTable = pgTable("task_logs", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  taskId: integer("task_id")
+    .notNull()
+    .references(() => tasksTable.id),
+  linesIndex: integer("lines_index").notNull(),
+  lines: text("lines").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});

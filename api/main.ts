@@ -1,7 +1,9 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Hono } from "hono";
-import { tasksTable } from "./db/schema.ts";
+import { taskLogsTable, tasksTable } from "./db/schema.ts";
 import { and, eq, isNull } from "drizzle-orm/expressions";
+import { zValidator } from "@hono/zod-validator";
+import z from "zod";
 
 type Db = ReturnType<typeof drizzle>;
 
@@ -9,7 +11,7 @@ await main();
 
 async function main() {
   const db = createDb();
-  await initDb(db);
+  await initDemoDb(db);
 
   const app = new Hono();
   app.get("/", (c) => c.text("Distributed Worker Demo"));
@@ -17,32 +19,53 @@ async function main() {
     const task = await pullTask(db);
     return c.json(task);
   });
-  app.patch("/tasks/:taskId/heartbeat", async (c) => {
-    const taskId = c.req.param("taskId");
-    await updateTaskHeartbeat(db, Number(taskId));
-    return c.json({});
-  });
-  // app.post("/tasks/:taskId/logs", (c) => {
-  //   return c.text("");
-  // });
-
-  const server = Deno.serve(
-    { signal: createGracefulShutdownSignal(), port: 3000 },
-    app.fetch
+  app.patch(
+    "/tasks/:taskId/heartbeat",
+    zValidator(
+      "param",
+      z.object({
+        taskId: zStringToInt(),
+      })
+    ),
+    async (c) => {
+      const { taskId } = c.req.valid("param");
+      await updateTaskHeartbeat(db, taskId);
+      return c.json({});
+    }
   );
-  await server.finished;
-  console.log("Server finished.");
-  Deno.exit(0);
-}
+  app.post(
+    "/tasks/:taskId/logs",
+    zValidator(
+      "param",
+      z.object({
+        taskId: zStringToInt(),
+      })
+    ),
+    zValidator(
+      "json",
+      z.object({
+        linesIndex: z.number(),
+        lines: z.string(),
+      })
+    ),
+    async (c) => {
+      const { taskId } = c.req.valid("param");
+      const { linesIndex, lines } = c.req.valid("json");
+      await addTaskLog(db, taskId, linesIndex, lines);
+      return c.json({});
+    }
+  );
 
-function createGracefulShutdownSignal() {
   const controller = new AbortController();
   const { signal } = controller;
   Deno.addSignalListener("SIGINT", () => {
     console.log("Received shutdown signal.");
     controller.abort();
   });
-  return signal;
+  const server = Deno.serve({ signal, port: 3000 }, app.fetch);
+  await server.finished;
+  console.log("Server finished.");
+  Deno.exit(0);
 }
 
 function createDb(): Db {
@@ -53,7 +76,8 @@ function createDb(): Db {
   return drizzle(url);
 }
 
-async function initDb(db: Db) {
+async function initDemoDb(db: Db) {
+  await db.delete(taskLogsTable);
   await db.delete(tasksTable);
 
   const command = `start=$(date +%s); i=0; while true; do \
@@ -89,7 +113,7 @@ async function pullTask(db: Db) {
     const task = tasks[0];
     await tx
       .update(tasksTable)
-      .set({ status: "in_progress" })
+      .set({ status: "in_progress", updatedAt: new Date() })
       .where(eq(tasksTable.id, task.id));
 
     return task;
@@ -97,8 +121,26 @@ async function pullTask(db: Db) {
 }
 
 async function updateTaskHeartbeat(db: Db, taskId: number) {
+  const now = new Date();
   await db
     .update(tasksTable)
-    .set({ heartbeatAt: new Date() })
+    .set({ heartbeatAt: now, updatedAt: now })
     .where(eq(tasksTable.id, taskId));
+}
+
+async function addTaskLog(
+  db: Db,
+  taskId: number,
+  linesIndex: number,
+  lines: string
+) {
+  await db.insert(taskLogsTable).values({
+    taskId,
+    linesIndex,
+    lines,
+  } satisfies typeof taskLogsTable.$inferInsert);
+}
+
+function zStringToInt() {
+  return z.preprocess((v) => Number(v), z.number().int());
 }
