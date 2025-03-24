@@ -7,7 +7,7 @@
     "pg": "npm:pg@^8.14.1"
   },
   "tasks": {
-    "dev": "deno run --env -NE main.ts",
+    "dev": "deno run --env -NE --watch main.ts",
     "db:sync": "deno --env --node-modules-dir -RENS --allow-run npm:drizzle-kit push"
   }
 }

@@ -19,6 +19,7 @@ export const tasksTable = pgTable("tasks", {
    */
   command: text().notNull(),
   status: taskStatusEnum("status").notNull().default("pending"),
+  heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
