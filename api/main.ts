@@ -3,9 +3,14 @@ import { Hono } from "hono";
 import { taskLogsTable, tasksTable } from "./db/schema.ts";
 import { and, eq, isNull } from "drizzle-orm/expressions";
 import { zValidator } from "@hono/zod-validator";
-import z from "zod";
+import { z } from "zod";
+import { ResultTaskStatus, TaskLog } from "@internal/interface";
+import { gunzip } from "node:zlib";
+import { Buffer } from "node:buffer";
 
 type Db = ReturnType<typeof drizzle>;
+
+const TOTAL_TASK_COUNT = 10;
 
 await main();
 
@@ -20,17 +25,23 @@ async function main() {
     return c.json(task);
   });
   app.patch(
-    "/tasks/:taskId/heartbeat",
+    "/tasks/:taskId/status",
     zValidator(
       "param",
       z.object({
         taskId: zStringToInt(),
       })
     ),
+    zValidator(
+      "json",
+      z.object({
+        status: z.enum(ResultTaskStatus),
+      })
+    ),
     async (c) => {
       const { taskId } = c.req.valid("param");
-      await updateTaskHeartbeat(db, taskId);
-      return c.json({});
+      const { status } = c.req.valid("json");
+      await updateTaskStatus(db, taskId, status);
     }
   );
   app.post(
@@ -41,17 +52,18 @@ async function main() {
         taskId: zStringToInt(),
       })
     ),
-    zValidator(
-      "json",
-      z.object({
-        linesIndex: z.number(),
-        lines: z.string(),
-      })
-    ),
     async (c) => {
       const { taskId } = c.req.valid("param");
-      const { linesIndex, lines } = c.req.valid("json");
-      await addTaskLog(db, taskId, linesIndex, lines);
+      const encoding = c.req.header("Content-Encoding");
+      if (encoding !== "gzip") {
+        return c.text(`Unexpected "Content-Encoding": ${encoding}`, 400);
+      }
+
+      const buffer = await c.req.arrayBuffer();
+      const decompressed = await gunzipAsync(buffer);
+      const taskLogRaw = JSON.parse(new TextDecoder().decode(decompressed));
+      const taskLog = await TaskLog.parseAsync(taskLogRaw);
+      await addTaskLog(db, taskId, taskLog);
       return c.json({});
     }
   );
@@ -86,7 +98,7 @@ async function initDemoDb(db: Db) {
     [ $((now - start)) -ge 10 ] && break; \
   done
   `;
-  const rows = Array.from({ length: 10 }).map(
+  const rows = Array.from({ length: TOTAL_TASK_COUNT }).map(
     (_) =>
       ({
         command,
@@ -120,27 +132,38 @@ async function pullTask(db: Db) {
   });
 }
 
-async function updateTaskHeartbeat(db: Db, taskId: number) {
-  const now = new Date();
-  await db
-    .update(tasksTable)
-    .set({ heartbeatAt: now, updatedAt: now })
-    .where(eq(tasksTable.id, taskId));
-}
-
-async function addTaskLog(
-  db: Db,
-  taskId: number,
-  linesIndex: number,
-  lines: string
-) {
+async function addTaskLog(db: Db, taskId: number, taskLog: TaskLog) {
   await db.insert(taskLogsTable).values({
     taskId,
-    linesIndex,
-    lines,
+    kind: taskLog.kind,
+    index: taskLog.index,
+    content: taskLog.content,
   } satisfies typeof taskLogsTable.$inferInsert);
+}
+
+async function updateTaskStatus(
+  db: Db,
+  taskId: number,
+  status: ResultTaskStatus
+) {
+  await db
+    .update(tasksTable)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(tasksTable.id, taskId));
 }
 
 function zStringToInt() {
   return z.preprocess((v) => Number(v), z.number().int());
+}
+
+function gunzipAsync(buffer: ArrayBuffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    gunzip(buffer, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  });
 }

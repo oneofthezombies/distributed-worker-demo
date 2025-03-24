@@ -1,6 +1,7 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@std/async@^1.0.11": "1.0.11",
     "npm:@hono/zod-validator@~0.4.3": "0.4.3_hono@4.7.5_zod@3.24.2",
     "npm:@types/pg@^8.11.11": "8.11.11",
     "npm:drizzle-kit@*": "0.30.5_esbuild@0.19.12",
@@ -9,6 +10,11 @@
     "npm:hono@^4.7.5": "4.7.5",
     "npm:pg@^8.14.1": "8.14.1",
     "npm:zod@^3.24.2": "3.24.2"
+  },
+  "jsr": {
+    "@std/async@1.0.11": {
+      "integrity": "eee0d3405275506638a9c8efaa849cf0d35873120c69b7caa1309c9a9e5b6f85"
+    }
   },
   "npm": {
     "@drizzle-team/brocli@0.10.2": {
@@ -448,6 +454,17 @@
           "npm:drizzle-orm@0.41",
           "npm:hono@^4.7.5",
           "npm:pg@^8.14.1",
+          "npm:zod@^3.24.2"
+        ]
+      },
+      "interface": {
+        "dependencies": [
+          "npm:zod@^3.24.2"
+        ]
+      },
+      "worker": {
+        "dependencies": [
+          "jsr:@std/async@^1.0.11",
           "npm:zod@^3.24.2"
         ]
       }

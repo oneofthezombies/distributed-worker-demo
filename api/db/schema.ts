@@ -19,7 +19,6 @@ export const tasksTable = pgTable("tasks", {
    */
   command: text().notNull(),
   status: taskStatusEnum("status").notNull().default("pending"),
-  heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -29,13 +28,16 @@ export const tasksTable = pgTable("tasks", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
+export const taskLogKind = pgEnum("task_log_kind", ["stdout", "stderr"]);
+
 export const taskLogsTable = pgTable("task_logs", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   taskId: integer("task_id")
     .notNull()
     .references(() => tasksTable.id),
-  linesIndex: integer("lines_index").notNull(),
-  lines: text("lines").notNull(),
+  kind: taskLogKind("kind").notNull(),
+  index: integer("index").notNull(),
+  content: text("content").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
