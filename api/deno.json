@@ -9,7 +9,8 @@
     "zod": "npm:zod@^3.24.2"
   },
   "tasks": {
-    "dev": "deno run --env -NE --watch main.ts",
-    "db:sync": "deno --env --node-modules-dir -RENS --allow-run npm:drizzle-kit push"
+    "dev": "deno run --env -EN --watch main.ts",
+    "start": "deno run --env -EN main.ts",
+    "db:sync": "deno -ENRS --allow-run --env --node-modules-dir npm:drizzle-kit push"
   }
 }

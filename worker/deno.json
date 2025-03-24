@@ -1,6 +1,7 @@
 {
   "tasks": {
-    "dev": "deno run -NER --allow-run --watch main.ts"
+    "dev": "deno run -ENR --allow-run --env --watch main.ts",
+    "start": "deno run -ENR --allow-run --env main.ts"
   },
   "imports": {
     "@std/async": "jsr:@std/async@^1.0.11",
