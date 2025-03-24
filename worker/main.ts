@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { gzip } from "node:zlib";
 import { Buffer } from "node:buffer";
 
-const EMPTY_TASK_DELAY_MS = 5000;
+const PULL_TASK_DELAY_MS = 5000;
 const SEND_TASK_LOG_THRESHOLD_LENGTH = 8 * 1024;
 const SEND_TASK_LOG_INTERVAL_MS = 5000;
 
@@ -35,17 +35,28 @@ async function main() {
     const response = await fetch(`${env.apiUrl}/tasks/pull`, {
       method: "POST",
     });
-    const taskRaw = await response.json();
-    if (taskRaw !== null) {
-      const task = Task.parse(taskRaw);
-      await runTask(signal, task);
-    } else {
-      await delay(EMPTY_TASK_DELAY_MS);
+
+    let tryAgainLater = false;
+    if (!response.ok) {
+      await logFetchError(response, "Task pulling failed.");
+      tryAgainLater = true;
     }
+
+    const taskRaw = await response.json();
+    if (taskRaw === null) {
+      tryAgainLater = true;
+    }
+
+    if (tryAgainLater) {
+      await delay(PULL_TASK_DELAY_MS);
+      continue;
+    }
+
+    const task = Task.parse(taskRaw);
+    await runTask(signal, task);
   }
 
   console.log("Worker finished.");
-  Deno.exit(0);
 }
 
 function runTask(signal: AbortSignal, task: Task) {
@@ -122,9 +133,7 @@ function runTask(signal: AbortSignal, task: Task) {
             headers,
             body,
           });
-          if (!response.ok) {
-            console.error(response.status, await response.text());
-          }
+          await logFetchError(response, "Add task log failed.");
         };
 
         const sendTaskLogIntervalId = setInterval(
@@ -174,13 +183,7 @@ async function updateTaskStatus(taskId: number, status: ResultTaskStatus) {
       status,
     }),
   });
-  if (!response.ok) {
-    console.error(
-      "Update task status failed.",
-      response.status,
-      await response.text()
-    );
-  }
+  await logFetchError(response, "Update task status failed.");
 }
 
 function parseEnv() {
@@ -199,4 +202,10 @@ function parseEnv() {
     apiUrl,
     enableLogCompression: enableLogCompression === "true",
   };
+}
+
+async function logFetchError(response: Response, message: string) {
+  if (!response.ok) {
+    console.error(message, response.status, await response.text());
+  }
 }
