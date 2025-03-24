@@ -1,15 +1,15 @@
 {
   "version": "4",
   "specifiers": {
-    "jsr:@std/async@^1.0.11": "1.0.11",
-    "npm:@hono/zod-validator@~0.4.3": "0.4.3_hono@4.7.5_zod@3.24.2",
-    "npm:@types/pg@^8.11.11": "8.11.11",
-    "npm:drizzle-kit@*": "0.30.5_esbuild@0.19.12",
-    "npm:drizzle-kit@~0.30.5": "0.30.5_esbuild@0.19.12",
-    "npm:drizzle-orm@0.41": "0.41.0_@types+pg@8.11.11_pg@8.14.1",
-    "npm:hono@^4.7.5": "4.7.5",
-    "npm:pg@^8.14.1": "8.14.1",
-    "npm:zod@^3.24.2": "3.24.2"
+    "jsr:@std/async@1.0.11": "1.0.11",
+    "npm:@hono/zod-validator@0.4.3": "0.4.3_hono@4.7.5_zod@3.24.2",
+    "npm:@types/k6@^1.0.1": "1.0.1",
+    "npm:@types/pg@8.11.11": "8.11.11",
+    "npm:drizzle-kit@0.30.5": "0.30.5_esbuild@0.19.12",
+    "npm:drizzle-orm@0.41.0": "0.41.0_@types+pg@8.11.11_pg@8.14.1",
+    "npm:hono@4.7.5": "4.7.5",
+    "npm:pg@8.14.1": "8.14.1",
+    "npm:zod@3.24.2": "3.24.2"
   },
   "jsr": {
     "@std/async@1.0.11": {
@@ -178,6 +178,9 @@
     },
     "@petamoriken/float16@3.9.2": {
       "integrity": "sha512-VgffxawQde93xKxT3qap3OH+meZf7VaSB5Sqd4Rqc+FP5alWbpOyan/7tRbOAvynjpG3GpdtAuGU/NdhQpmrog=="
+    },
+    "@types/k6@1.0.1": {
+      "integrity": "sha512-C2VX1t9jj543L1RxyNuToXR2VZvmfOHCORDTBYUKctrbVbTpBRmb1IhMl5/ZHb851MIIrCzdG27HwewPPQ2E6Q=="
     },
     "@types/node@22.12.0": {
       "integrity": "sha512-Fll2FZ1riMjNmlmJOdAyY5pUbkftXslB5DgEzlIuNaiWhXd00FhWxVC/r4yV/4wBb9JfImTu+jiSvXTkJ7F/gA==",
@@ -448,24 +451,30 @@
     "members": {
       "api": {
         "dependencies": [
-          "npm:@hono/zod-validator@~0.4.3",
-          "npm:@types/pg@^8.11.11",
-          "npm:drizzle-kit@~0.30.5",
-          "npm:drizzle-orm@0.41",
-          "npm:hono@^4.7.5",
-          "npm:pg@^8.14.1",
-          "npm:zod@^3.24.2"
+          "npm:@hono/zod-validator@0.4.3",
+          "npm:@types/pg@8.11.11",
+          "npm:drizzle-kit@0.30.5",
+          "npm:drizzle-orm@0.41.0",
+          "npm:hono@4.7.5",
+          "npm:pg@8.14.1",
+          "npm:zod@3.24.2"
+        ]
+      },
+      "bench": {
+        "dependencies": [
+          "jsr:@std/async@1.0.11",
+          "npm:@types/k6@^1.0.1"
         ]
       },
       "interface": {
         "dependencies": [
-          "npm:zod@^3.24.2"
+          "npm:zod@3.24.2"
         ]
       },
       "worker": {
         "dependencies": [
-          "jsr:@std/async@^1.0.11",
-          "npm:zod@^3.24.2"
+          "jsr:@std/async@1.0.11",
+          "npm:zod@3.24.2"
         ]
       }
     }

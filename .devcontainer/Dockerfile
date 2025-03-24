@@ -14,6 +14,13 @@ RUN apt update && \
     && apt clean && \
     rm -rf "/var/lib/apt/lists/*"
 
+RUN ARCH=$(dpkg --print-architecture) && \
+    curl -fsSL -o k6.tar.gz https://github.com/grafana/k6/releases/download/v0.57.0/k6-v0.57.0-linux-$ARCH.tar.gz && \
+    mkdir -p k6 && \
+    tar -xzf k6.tar.gz -C k6 --strip-components=1 && \
+    mv k6/k6 /usr/local/bin/k6 && \
+    rm -rf k6.tar.gz k6
+
 USER vscode
 ENV HOME="/home/vscode"
 RUN echo '' >> ~/.bashrc && \

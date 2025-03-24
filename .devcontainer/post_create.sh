@@ -2,5 +2,5 @@
 
 set -ex
 
-# Check JavaScript
 deno --version
+k6 --version

@@ -8,7 +8,7 @@ import { gzip } from "node:zlib";
 import { Buffer } from "node:buffer";
 
 const PULL_TASK_DELAY_MS = 5000;
-const SEND_TASK_LOG_THRESHOLD_LENGTH = 8 * 1024;
+const SEND_TASK_LOG_THRESHOLD_LENGTH = 512 * 1024;
 const SEND_TASK_LOG_INTERVAL_MS = 5000;
 
 const env = parseEnv();
@@ -53,6 +53,7 @@ async function main() {
     }
 
     const task = Task.parse(taskRaw);
+    console.log("Start to run task.");
     await runTask(signal, task);
   }
 

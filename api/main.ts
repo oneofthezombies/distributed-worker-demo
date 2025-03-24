@@ -10,17 +10,18 @@ import { Buffer } from "node:buffer";
 
 type Db = ReturnType<typeof drizzle>;
 
-const TOTAL_TASK_COUNT = 10;
-const MEASURE_INTERVAL_MS = 1000;
+const DEMO_TASK_COUNT = 1;
+const env = parseEnv();
 
-// Measure log ingestion speed (byteLength/sec)
+// Measure log ingestion (byteLength/sec)
+const MEASURE_INTERVAL_MS = 1000;
 let measureByteLength = 0;
-let measureIntervalId: number | null = null;
+let maxMeasureValue = 0;
 
 await main();
 
 async function main() {
-  const db = createDb();
+  const db = drizzle(env.databaseUrl);
   await initDemoDb(db);
 
   const app = new Hono();
@@ -85,47 +86,44 @@ async function main() {
   });
   const server = Deno.serve({ signal, port: 3000 }, app.fetch);
 
-  measureIntervalId = setInterval(() => {
-    console.log(
-      `Log byte length: ${Math.round(measureByteLength / 1024)} KB/sec`
-    );
+  const measureIntervalId = setInterval(() => {
+    const value = measureByteLength;
     measureByteLength = 0;
+    if (value > maxMeasureValue) {
+      maxMeasureValue = value;
+      console.log(
+        `Max measure value: ${toReadableByteLength(
+          maxMeasureValue
+        )}/s ${maxMeasureValue}B/s`
+      );
+    }
   }, MEASURE_INTERVAL_MS);
 
   await server.finished;
 
-  if (measureIntervalId !== null) {
-    clearInterval(measureIntervalId);
-  }
-
+  clearInterval(measureIntervalId);
   console.log("Server finished.");
-  Deno.exit(0);
-}
-
-function createDb(): Db {
-  const url = Deno.env.get("DATABASE_URL");
-  if (!url) {
-    throw new Error("Please define DATABASE_URL environment variable.");
-  }
-  return drizzle(url);
 }
 
 async function initDemoDb(db: Db) {
+  // delete old data
   await db.delete(taskLogsTable);
   await db.delete(tasksTable);
 
+  // create task for demo
   const command = `start=$(date +%s); i=0; while true; do \
     echo "$(TZ=UTC date '+%Y-%m-%d %H:%M:%S').$(TZ=UTC date +%N) - Logging $((i++))"; \
     now=$(date +%s); \
     [ $((now - start)) -ge 10 ] && break; \
   done
   `;
-  const rows = Array.from({ length: TOTAL_TASK_COUNT }).map(
-    (_) =>
-      ({
-        command,
-      } satisfies typeof tasksTable.$inferInsert)
-  );
+
+  const rows = [];
+  for (let i = 0; i < DEMO_TASK_COUNT; ++i) {
+    rows.push({
+      command,
+    } satisfies typeof tasksTable.$inferInsert);
+  }
   await db.insert(tasksTable).values(rows);
 }
 
@@ -190,4 +188,31 @@ function gunzipAsync(buffer: ArrayBuffer): Promise<Buffer> {
       }
     });
   });
+}
+
+function parseEnv() {
+  const databaseUrl = Deno.env.get("DATABASE_URL");
+  if (!databaseUrl) {
+    throw new Error("Please define DATABASE_URL environment variable.");
+  }
+
+  return { databaseUrl };
+}
+
+function toReadableByteLength(byteLength: number) {
+  let suffix = "B";
+  let value = byteLength;
+  if (value >= 1024) {
+    value /= 1024;
+    suffix = "KB";
+  }
+  if (value >= 1024) {
+    value /= 1024;
+    suffix = "MB";
+  }
+  if (value >= 1024) {
+    value /= 1024;
+    suffix = "GB";
+  }
+  return `${Math.ceil(value)} ${suffix}`;
 }
