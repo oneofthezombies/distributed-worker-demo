@@ -2,7 +2,6 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "denoland.vscode-deno",
         "esbenp.prettier-vscode",
         "ms-azuretools.vscode-docker",
         "redhat.vscode-yaml",
@@ -12,6 +11,10 @@
       "settings": {
         "[dockerfile]": {
           "editor.defaultFormatter": "ms-azuretools.vscode-docker",
+          "editor.formatOnSave": true
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true
         },
         "[json]": {
@@ -37,7 +40,7 @@
   },
   "dockerComposeFile": "./compose.yaml",
   "overrideCommand": true,
-  "postCreateCommand": ".devcontainer/post_create.sh",
+  "postCreateCommand": ".devcontainer/post-create.sh",
   "service": "work",
   "workspaceFolder": "/work"
 }

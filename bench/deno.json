@@ -1,9 +1,0 @@
-{
-  "imports": {
-    "k6": "npm:@types/k6@^1.0.1",
-    "@std/async": "jsr:@std/async@1.0.11"
-  },
-  "tasks": {
-    "bench:deno": "deno run -NR --allow-run bench_deno.ts"
-  }
-}

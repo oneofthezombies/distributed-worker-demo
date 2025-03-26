@@ -1,3 +1,0 @@
-{
-  "workspace": ["./api", "./worker", "./interface", "./bench"]
-}

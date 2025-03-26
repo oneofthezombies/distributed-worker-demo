@@ -1,0 +1,17 @@
+{
+  "name": "@internal/worker-api",
+  "type": "module",
+  "scripts": {
+    "db:sync": "bunx drizzle-kit push"
+  },
+  "dependencies": {
+    "@internal/worker-core": "workspace:*",
+    "drizzle-orm": "0.41.0",
+    "zod": "3.24.2"
+  },
+  "devDependencies": {
+    "@types/pg": "8.11.11",
+    "drizzle-kit": "0.30.5",
+    "pg": "8.14.1"
+  }
+}

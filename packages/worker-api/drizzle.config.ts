@@ -2,9 +2,9 @@ import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
   out: "./drizzle",
-  schema: "./db/schema.ts",
+  schema: "./src/db/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    url: Deno.env.get("DATABASE_URL")!,
+    url: process.env["DATABASE_URL"]!,
   },
 });

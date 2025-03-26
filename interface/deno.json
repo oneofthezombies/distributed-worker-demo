@@ -1,7 +1,0 @@
-{
-  "name": "@internal/interface",
-  "exports": "./mod.ts",
-  "imports": {
-    "zod": "npm:zod@3.24.2"
-  }
-}

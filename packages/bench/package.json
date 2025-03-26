@@ -1,0 +1,10 @@
+{
+  "name": "bench",
+  "type": "module",
+  "scripts": {
+    "bench": "k6 run bench.js"
+  },
+  "dependencies": {
+    "@types/k6": "1.0.1"
+  }
+}

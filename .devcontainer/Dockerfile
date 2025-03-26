@@ -30,7 +30,9 @@ RUN echo '' >> ~/.bashrc && \
     echo '' >> ~/.bashrc
 
 RUN echo '# JavaScript' >> ~/.bashrc && \
-    curl -fsSL https://deno.land/install.sh | sh -s v2.2.5 -y && \
+    curl -fsSL https://bun.sh/install | bash -s "bun-v1.2.6" && \
+    echo 'export BUN_INSTALL="$HOME/.bun"' >> ~/.bashrc && \ 
+    echo 'export PATH="$BUN_INSTALL/bin:$PATH"' >> ~/.bashrc && \
     echo '' >> ~/.bashrc
 
 RUN echo '# Aliases' >> ~/.bashrc && \

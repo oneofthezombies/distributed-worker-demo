@@ -2,5 +2,5 @@
 
 set -ex
 
-deno --version
+bun --version
 k6 --version
