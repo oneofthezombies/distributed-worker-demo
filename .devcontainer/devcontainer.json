@@ -40,7 +40,7 @@
   },
   "dockerComposeFile": "./compose.yaml",
   "overrideCommand": true,
-  "postCreateCommand": ".devcontainer/post-create.sh",
+  "postCreateCommand": ".devcontainer/post_create.sh",
   "service": "work",
   "workspaceFolder": "/work"
 }
