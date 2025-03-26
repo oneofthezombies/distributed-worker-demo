@@ -1,17 +1,15 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { z } from "zod";
-import { delay } from "@std/async/delay";
-import { ResultTaskStatus, TaskLog, TaskLogKind } from "@internal/interface";
 import { Readable } from "node:stream";
 import { gzip } from "node:zlib";
 import { Buffer } from "node:buffer";
-
-const PULL_TASK_DELAY_MS = 5000;
-const SEND_TASK_LOG_THRESHOLD_LENGTH = 512 * 1024;
-const SEND_TASK_LOG_INTERVAL_MS = 5000;
-
-const env = parseEnv();
+import { z } from "zod";
+import {
+  ResultTaskStatus,
+  TaskLog,
+  TaskLogKind,
+  UpdateTaskStatus,
+} from "@internal/worker-core";
 
 const Task = z.object({
   id: z.number().int(),
@@ -19,13 +17,18 @@ const Task = z.object({
 });
 type Task = z.infer<typeof Task>;
 
+const PULL_TASK_DELAY_MS = 5000;
+const SEND_TASK_LOG_THRESHOLD_LENGTH = 512 * 1024;
+const SEND_TASK_LOG_INTERVAL_MS = 5000;
+const env = parseEnv();
+
 await main();
 
 async function main() {
   const controller = new AbortController();
   const { signal } = controller;
   let shutdownRequested = false;
-  Deno.addSignalListener("SIGINT", () => {
+  process.on("SIGINT", () => {
     console.log("Received shutdown signal.");
     controller.abort();
     shutdownRequested = true;
@@ -182,18 +185,18 @@ async function updateTaskStatus(taskId: number, status: ResultTaskStatus) {
     },
     body: JSON.stringify({
       status,
-    }),
+    } satisfies UpdateTaskStatus),
   });
   await logFetchError(response, "Update task status failed.");
 }
 
 function parseEnv() {
-  const apiUrl = Deno.env.get("API_URL");
+  const apiUrl = process.env["API_URL"];
   if (!apiUrl) {
     throw new Error("Please define API_URL environment variable.");
   }
 
-  const enableLogCompression = Deno.env.get("ENABLE_LOG_COMPRESSION");
+  const enableLogCompression = process.env["ENABLE_LOG_COMPRESSION"];
   if (!enableLogCompression) {
     throw new Error(
       "Please define ENABLE_LOG_COMPRESSION environment variable."
@@ -209,4 +212,8 @@ async function logFetchError(response: Response, message: string) {
   if (!response.ok) {
     console.error(message, response.status, await response.text());
   }
+}
+
+async function delay(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }

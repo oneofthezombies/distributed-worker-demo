@@ -3,6 +3,11 @@ import { z } from "zod";
 export const ResultTaskStatus = ["succeeded", "failed"] as const;
 export type ResultTaskStatus = (typeof ResultTaskStatus)[number];
 
+export const UpdateTaskStatus = z.object({
+  status: z.enum(ResultTaskStatus),
+});
+export type UpdateTaskStatus = z.infer<typeof UpdateTaskStatus>;
+
 export const TaskStatus = [
   "pending",
   "in_progress",

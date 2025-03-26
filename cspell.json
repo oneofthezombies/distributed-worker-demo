@@ -1,13 +1,14 @@
 {
   "enabledFileTypes": {
-    "typescript": true,
+    "javascript": true,
     "json": true,
     "jsonc": true,
+    "typescript": true,
     "yaml": true
   },
   "ignorePaths": [
     ".devcontainer/devcontainer.json",
     ".devcontainer/Dockerfile"
   ],
-  "words": ["nodenext", "dotenv"]
+  "words": ["dotenv", "bunx"]
 }
