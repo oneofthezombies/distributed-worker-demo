@@ -13,7 +13,7 @@ const params = {
   headers: {
     "Content-Type": "application/json",
   },
-  compression: "gzip",
+  // compression: "gzip",
 };
 
 export const options = {

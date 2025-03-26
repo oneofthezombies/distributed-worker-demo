@@ -1,8 +1,10 @@
+import "dotenv/config";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
-import { gzip } from "node:zlib";
+import { gzip, gunzip } from "node:zlib";
 import { Buffer } from "node:buffer";
+import { promisify } from "node:util";
 import { z } from "zod";
 import {
   ResultTaskStatus,
@@ -127,7 +129,7 @@ function runTask(signal: AbortSignal, task: Task) {
           let body;
           if (env.enableLogCompression) {
             headers.set("Content-Encoding", "gzip");
-            body = await gzipAsync(stringified);
+            body = await promisify(gzip)(stringified);
           } else {
             body = stringified;
           }
@@ -161,18 +163,6 @@ function runTask(signal: AbortSignal, task: Task) {
 
       startSendTaskLog("stdout", child.stdout);
       startSendTaskLog("stderr", child.stderr);
-    });
-  });
-}
-
-function gzipAsync(input: string): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    gzip(input, (err, result) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
     });
   });
 }

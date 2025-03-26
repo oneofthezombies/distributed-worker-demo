@@ -8,6 +8,7 @@ RUN apt update && \
     apt install -y \
     curl \
     wget \
+    unzip \
     git \
     # To open in a browser on the host
     xdg-utils \
@@ -30,9 +31,8 @@ RUN echo '' >> ~/.bashrc && \
     echo '' >> ~/.bashrc
 
 RUN echo '# JavaScript' >> ~/.bashrc && \
-    curl -fsSL https://bun.sh/install | bash -s "bun-v1.2.6" && \
-    echo 'export BUN_INSTALL="$HOME/.bun"' >> ~/.bashrc && \ 
-    echo 'export PATH="$BUN_INSTALL/bin:$PATH"' >> ~/.bashrc && \
+    curl -o- https://fnm.vercel.app/install | bash && \
+    bash -i -c 'fnm install 22.14.0' && \
     echo '' >> ~/.bashrc
 
 RUN echo '# Aliases' >> ~/.bashrc && \

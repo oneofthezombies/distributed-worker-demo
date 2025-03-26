@@ -2,5 +2,6 @@
 
 set -ex
 
-bun --version
+node --version
+npm --version
 k6 --version

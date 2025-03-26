@@ -1,10 +1,17 @@
-import { drizzle } from "drizzle-orm/bun-sql";
+import "dotenv/config";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { taskLogsTable, tasksTable } from "./db/schema.ts";
 import { and, eq, isNull } from "drizzle-orm/expressions";
 import { gunzip } from "node:zlib";
 import { Buffer } from "node:buffer";
+import { promisify } from "node:util";
 import { z } from "zod";
 import { TaskLog, UpdateTaskStatus } from "@internal/worker-core";
+import express, {
+  type NextFunction,
+  type Request as RequestEx,
+  type Response as ResponseEx,
+} from "express";
 
 type Db = ReturnType<typeof drizzle>;
 const TaskId = z.preprocess((val) => Number(val), z.number().int());
@@ -27,59 +34,55 @@ async function main() {
   await initDemoDb(db);
 
   const stopLogCollectionMeasurement = startLogCollectionMeasurement();
-  const server = Bun.serve({
-    reusePort: true,
-    routes: {
-      "/": {
-        GET: () => new Response("Distributed Worker Demo"),
-      },
-      "/tasks/pull": {
-        POST: async () => {
-          const task = await pullTask(db);
-          return Response.json(task);
-        },
-      },
-      "/tasks/:taskId/status": {
-        PATCH: async (req) => {
-          const taskId = await TaskId.parseAsync(req.params.taskId);
-          const body = await UpdateTaskStatus.parseAsync(await req.json());
-          await updateTaskStatus(db, taskId, body);
-          return Response.json({});
-        },
-      },
-      "/tasks/:taskId/logs": {
-        POST: async (req) => {
-          const taskId = await TaskId.parseAsync(req.params.taskId);
-          const encoding = req.headers.get("Content-Encoding");
-          let bodyRaw;
-          if (encoding === "gzip") {
-            const buffer = await req.arrayBuffer();
-            const decompressed = await gunzipAsync(buffer);
-            bodyRaw = JSON.parse(new TextDecoder().decode(decompressed));
-          } else {
-            bodyRaw = await req.json();
-          }
 
-          const body = await TaskLog.parseAsync(bodyRaw);
-          await addTaskLog(db, taskId, body);
+  const app = express();
+  app.use(gzipBodyParser);
+  app.use(jsonBodyParser);
+  app.get("/", (_, res) => {
+    res.send("Distributed Worker Demo");
+  });
+  app.post("/tasks/pull", async (_, res) => {
+    const task = await pullTask(db);
+    res.json(task);
+  });
+  app.patch("/tasks/:taskId/status", async (req, res) => {
+    const taskId = await TaskId.parseAsync(req.params.taskId);
+    const body = await UpdateTaskStatus.parseAsync(req.body);
+    await updateTaskStatus(db, taskId, body);
+    res.json({});
+  });
+  app.post("/tasks/:taskId/logs", async (req, res) => {
+    const taskId = await TaskId.parseAsync(req.params.taskId);
+    const body = await TaskLog.parseAsync(req.body);
+    await addTaskLog(db, taskId, body);
 
-          logCollectionMeasurement.byteLength += new TextEncoder().encode(
-            body.content
-          ).byteLength;
-          return Response.json({});
-        },
-      },
-    },
+    logCollectionMeasurement.byteLength += new TextEncoder().encode(
+      body.content
+    ).byteLength;
+    res.json({});
   });
 
-  await new Promise((resolve) => {
-    process.on("SIGINT", () => {
-      console.log("Received shutdown signal.");
-      server.stop().then(resolve);
+  const server = await new Promise<ReturnType<typeof app.listen>>((resolve) => {
+    const server = app.listen(3000, () => {
+      console.log("Worker API listen on 3000");
+      resolve(server);
     });
   });
 
-  console.log("Server finished.");
+  await new Promise<void>((resolve) => {
+    process.on("SIGINT", () => {
+      console.log("Received shutdown signal.");
+      server.close((err) => {
+        if (err) {
+          console.error("Server finished with error.", err);
+        } else {
+          console.log("Server finished.");
+        }
+        resolve();
+      });
+    });
+  });
+
   stopLogCollectionMeasurement();
 }
 
@@ -151,18 +154,6 @@ async function updateTaskStatus(
     .where(eq(tasksTable.id, taskId));
 }
 
-function gunzipAsync(buffer: ArrayBuffer): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    gunzip(buffer, (err, result) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
-    });
-  });
-}
-
 function parseEnv() {
   const databaseUrl = process.env["DATABASE_URL"];
   if (!databaseUrl) {
@@ -201,4 +192,54 @@ function startLogCollectionMeasurement() {
   return () => {
     clearInterval(measureIntervalId);
   };
+}
+
+function isGzip(buffer: Buffer): boolean {
+  return buffer[0] === 0x1f && buffer[1] === 0x8b;
+}
+
+export async function gzipBodyParser(
+  req: RequestEx,
+  res: ResponseEx,
+  next: NextFunction
+) {
+  if (req.headers["content-encoding"] !== "gzip") {
+    return next();
+  }
+
+  const chunks: Buffer[] = [];
+  req.on("data", (chunk) => chunks.push(chunk));
+  req.on("end", async () => {
+    try {
+      const buffer = Buffer.concat(chunks);
+      const decompressed = await promisify(gunzip)(buffer);
+      Reflect.set(req, "rawBody", decompressed);
+      next();
+    } catch (err) {
+      console.error("Gzip decompression failed.", err);
+      res.status(400).send("Invalid gzip body");
+    }
+  });
+}
+
+export async function jsonBodyParser(
+  req: RequestEx,
+  res: ResponseEx,
+  next: NextFunction
+) {
+  if (req.headers["content-type"] !== "application/json") {
+    return next();
+  }
+
+  const rawBody = Reflect.get(req, "rawBody") as Buffer | undefined;
+  if (rawBody) {
+    try {
+      req.body = JSON.parse(rawBody.toString("utf-8"));
+      next();
+    } catch (e) {
+      res.status(400).send("Invalid JSON");
+    }
+  } else {
+    express.json({ limit: "1mb" })(req, res, next);
+  }
 }
