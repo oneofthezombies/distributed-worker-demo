@@ -5,6 +5,16 @@ Distributed Worker Demo is a system demo that runs distributed tasks remotely an
 > In real projects, mobile game/app and desktop web browser tests are run remotely in a distributed manner, and their results and logs are collected.
 > See the [dogu](https://github.com/dogu-team/dogu) project.
 
+## Table of Contents
+
+- [System Design](#system-design)
+  - [System Architecture Diagram](#system-architecture-diagram)
+  - [Sequence Diagram](#sequence-diagram)
+- [Why Use This Tech Stack?](#why-use-this-tech-stack)
+  - [Why TypeScript?](#why-typescript)
+  - [Why HTTP?](#why-http)
+  - [Why PostgreSQL?](#why-postgresql)
+
 ## System Design
 
 This demo consists of two components: the **Agent** and the **Agent API**.
