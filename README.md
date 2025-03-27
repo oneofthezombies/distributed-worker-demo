@@ -58,3 +58,7 @@ TODO
 ### Why PostgreSQL?
 
 TODO
+
+### Why I Didn't Use Kubernetes (Yet)
+
+TODO
