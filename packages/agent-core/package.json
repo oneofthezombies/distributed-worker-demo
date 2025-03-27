@@ -1,5 +1,5 @@
 {
-  "name": "@internal/worker-core",
+  "name": "@internal/agent-core",
   "version": "0.0.0",
   "type": "module",
   "main": "src/index.ts",

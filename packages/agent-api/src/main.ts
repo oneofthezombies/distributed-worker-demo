@@ -5,8 +5,10 @@ import { and, eq, isNull } from "drizzle-orm/expressions";
 import { gunzip } from "node:zlib";
 import { Buffer } from "node:buffer";
 import { promisify } from "node:util";
+import cluster from "node:cluster";
+import os from "node:os";
 import { z } from "zod";
-import { TaskLog, UpdateTaskStatus } from "@internal/worker-core";
+import { TaskLog, UpdateTaskStatus } from "@internal/agent-core";
 import express, {
   type NextFunction,
   type Request as RequestEx,
@@ -17,73 +19,158 @@ type Db = ReturnType<typeof drizzle>;
 const TaskId = z.preprocess((val) => Number(val), z.number().int());
 type TaskId = z.infer<typeof TaskId>;
 
-const DEMO_TASK_COUNT = 1;
+const WorkerEvent = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("taskLogAdded"),
+    byteLength: z.number(),
+  }),
+]);
+type WorkerEvent = z.infer<typeof WorkerEvent>;
+
+const DEMO_WORKER_COUNT = Math.floor(os.cpus().length / 2);
+const DEMO_TASK_COUNT = 2;
 const env = parseEnv();
 
-// log collection measurement (byteLength/sec)
-const logCollectionMeasurement = {
-  INTERVAL_MS: 1000,
-  byteLength: 0,
-  maxByteLength: 0,
-};
+if (cluster.isPrimary) {
+  await primaryMain();
+} else {
+  await workerMain();
+}
 
-await main();
+async function primaryMain() {
+  // log collection measurement (byteLength/sec)
+  const logCollectionMeasurement = {
+    INTERVAL_MS: 1000,
+    byteLength: 0,
+    maxByteLength: 0,
+  };
 
-async function main() {
   const db = drizzle(env.databaseUrl);
   await initDemoDb(db);
 
-  const stopLogCollectionMeasurement = startLogCollectionMeasurement();
+  const measureIntervalId = setInterval(() => {
+    const { byteLength, maxByteLength } = logCollectionMeasurement;
+
+    logCollectionMeasurement.byteLength = 0;
+    if (byteLength > maxByteLength) {
+      logCollectionMeasurement.maxByteLength = byteLength;
+      console.log(
+        `Max measurement value: ${toReadableByteLength(
+          byteLength
+        )}/s ${byteLength} B/s`
+      );
+    }
+  }, logCollectionMeasurement.INTERVAL_MS);
+
+  cluster.on("message", (_, messageRaw) => {
+    WorkerEvent.parseAsync(messageRaw).then((message) => {
+      const { kind } = message;
+      if (kind === "taskLogAdded") {
+        const { byteLength } = message;
+        logCollectionMeasurement.byteLength += byteLength;
+      } else {
+        console.error("Unexpected worker message kind.", kind);
+      }
+    });
+  });
+
+  for (let i = 0; i < DEMO_WORKER_COUNT; i++) {
+    cluster.fork();
+  }
+
+  process.on("SIGINT", async () => {
+    console.log("SIGINT received. Shutting down all workers...");
+
+    const shutdownPromises: Promise<void>[] = [];
+    for (const id in cluster.workers) {
+      const worker = cluster.workers[id];
+      if (worker) {
+        shutdownPromises.push(
+          new Promise((resolve) => {
+            worker.on("exit", () => {
+              console.log(`Worker ${worker.process.pid} exited.`);
+              resolve();
+            });
+
+            worker.process.kill("SIGINT");
+          })
+        );
+      }
+    }
+
+    await Promise.all(shutdownPromises);
+    console.log("All workers shut down. Exiting main process.");
+
+    clearInterval(measureIntervalId);
+    process.exit(0);
+  });
+}
+
+async function workerMain() {
+  const db = drizzle(env.databaseUrl);
 
   const app = express();
   app.use(gzipBodyParser);
   app.use(jsonBodyParser);
+
   app.get("/", (_, res) => {
     res.send("Distributed Worker Demo");
   });
+
   app.post("/tasks/pull", async (_, res) => {
     const task = await pullTask(db);
     res.json(task);
   });
+
   app.patch("/tasks/:taskId/status", async (req, res) => {
     const taskId = await TaskId.parseAsync(req.params.taskId);
     const body = await UpdateTaskStatus.parseAsync(req.body);
     await updateTaskStatus(db, taskId, body);
     res.json({});
   });
+
   app.post("/tasks/:taskId/logs", async (req, res) => {
     const taskId = await TaskId.parseAsync(req.params.taskId);
     const body = await TaskLog.parseAsync(req.body);
     await addTaskLog(db, taskId, body);
 
-    logCollectionMeasurement.byteLength += new TextEncoder().encode(
-      body.content
-    ).byteLength;
+    process.send!({
+      kind: "taskLogAdded",
+      byteLength: new TextEncoder().encode(body.content).byteLength,
+    } satisfies WorkerEvent);
+
     res.json({});
   });
 
   const server = await new Promise<ReturnType<typeof app.listen>>((resolve) => {
     const server = app.listen(3000, () => {
-      console.log("Worker API listen on 3000");
+      console.log("Agent API listen on 3000");
       resolve(server);
     });
   });
 
+  let shuttingDown = false;
+
   await new Promise<void>((resolve) => {
     process.on("SIGINT", () => {
-      console.log("Received shutdown signal.");
+      if (shuttingDown) return;
+      shuttingDown = true;
+
+      console.log("SIGINT received. Shutting down server...");
+
       server.close((err) => {
         if (err) {
           console.error("Server finished with error.", err);
         } else {
           console.log("Server finished.");
         }
+
         resolve();
       });
     });
   });
 
-  stopLogCollectionMeasurement();
+  process.exit(0);
 }
 
 async function initDemoDb(db: Db) {
@@ -172,30 +259,6 @@ function toReadableByteLength(byteLength: number): string {
     unitIndex++;
   }
   return `${value.toFixed(2)} ${units[unitIndex]}`;
-}
-
-function startLogCollectionMeasurement() {
-  const measureIntervalId = setInterval(() => {
-    const { byteLength, maxByteLength } = logCollectionMeasurement;
-
-    logCollectionMeasurement.byteLength = 0;
-    if (byteLength > maxByteLength) {
-      logCollectionMeasurement.maxByteLength = byteLength;
-      console.log(
-        `Max measurement value: ${toReadableByteLength(
-          byteLength
-        )}/s ${byteLength} B/s`
-      );
-    }
-  }, logCollectionMeasurement.INTERVAL_MS);
-
-  return () => {
-    clearInterval(measureIntervalId);
-  };
-}
-
-function isGzip(buffer: Buffer): boolean {
-  return buffer[0] === 0x1f && buffer[1] === 0x8b;
 }
 
 export async function gzipBodyParser(

@@ -1,12 +1,12 @@
 {
-  "name": "@internal/worker-api",
+  "name": "@internal/agent-api",
   "type": "module",
   "scripts": {
     "db:sync": "drizzle-kit push",
-    "start": "node --experimental-strip-types src/main.ts"
+    "start": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/main.ts"
   },
   "dependencies": {
-    "@internal/worker-core": "0.0.0",
+    "@internal/agent-core": "0.0.0",
     "dotenv": "16.4.7",
     "drizzle-orm": "0.41.0",
     "express": "4.21.2",

@@ -2,8 +2,7 @@ import "dotenv/config";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
-import { gzip, gunzip } from "node:zlib";
-import { Buffer } from "node:buffer";
+import { gzip } from "node:zlib";
 import { promisify } from "node:util";
 import { z } from "zod";
 import {
@@ -11,7 +10,7 @@ import {
   TaskLog,
   TaskLogKind,
   UpdateTaskStatus,
-} from "@internal/worker-core";
+} from "@internal/agent-core";
 
 const Task = z.object({
   id: z.number().int(),
@@ -19,6 +18,7 @@ const Task = z.object({
 });
 type Task = z.infer<typeof Task>;
 
+const DEMO_TASK_PROCESSOR_COUNT = 2;
 const PULL_TASK_DELAY_MS = 5000;
 const SEND_TASK_LOG_THRESHOLD_LENGTH = 512 * 1024;
 const SEND_TASK_LOG_INTERVAL_MS = 5000;
@@ -36,20 +36,26 @@ async function main() {
     shutdownRequested = true;
   });
 
+  let taskProcessorCount = 0;
   while (!shutdownRequested) {
-    const response = await fetch(`${env.apiUrl}/tasks/pull`, {
-      method: "POST",
-    });
-
     let tryAgainLater = false;
-    if (!response.ok) {
-      await logFetchError(response, "Task pulling failed.");
+    let taskRaw;
+    if (taskProcessorCount == DEMO_TASK_PROCESSOR_COUNT) {
       tryAgainLater = true;
-    }
+    } else {
+      const response = await fetch(`${env.apiUrl}/tasks/pull`, {
+        method: "POST",
+      });
 
-    const taskRaw = await response.json();
-    if (taskRaw === null) {
-      tryAgainLater = true;
+      if (!response.ok) {
+        await logFetchError(response, "Task pulling failed.");
+        tryAgainLater = true;
+      }
+
+      taskRaw = await response.json();
+      if (taskRaw === null) {
+        tryAgainLater = true;
+      }
     }
 
     if (tryAgainLater) {
@@ -58,14 +64,19 @@ async function main() {
     }
 
     const task = Task.parse(taskRaw);
-    console.log("Start to run task.");
-    await runTask(signal, task);
+    taskProcessorCount += 1;
+    runTask(signal, task).finally(() => {
+      taskProcessorCount -= 1;
+    });
   }
 
-  console.log("Worker finished.");
+  console.log("Agent finished.");
+  process.exit(0);
 }
 
 function runTask(signal: AbortSignal, task: Task) {
+  console.log("Start to run task.");
+
   return new Promise((resolveInternal, rejectInternal) => {
     let beforeSettles: (() => void)[] = [];
     const invokeBeforeSettles = () => {

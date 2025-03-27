@@ -7,6 +7,7 @@
     "yaml": true
   },
   "ignorePaths": [
+    "/images/",
     ".devcontainer/devcontainer.json",
     ".devcontainer/Dockerfile"
   ],
