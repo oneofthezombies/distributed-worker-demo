@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "db:sync": "drizzle-kit push",
-    "start": "node --experimental-strip-types --no-warnings src/main.ts"
+    "start": "node --experimental-transform-types --no-warnings src/main.ts"
   },
   "dependencies": {
     "@internal/agent-core": "0.0.0",
