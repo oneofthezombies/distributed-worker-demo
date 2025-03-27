@@ -39,9 +39,7 @@ Here's why I decided to use each of them.
 
 ### Why TypeScript?
 
-TypeScript is a superset of JavaScript, and understanding JavaScript is essential when working on web projects—because browsers only understand JavaScript or WebAssembly.
-
-In this project, I wanted to build a landing site, a user console site, and a desktop app. So it made sense to include JavaScript/TypeScript in the tech stack. TypeScript offers strong IDE support, a reliable runtime with great debugging tools, and access to a large ecosystem of libraries.
+TypeScript is a superset of JavaScript, and understanding JavaScript is essential when working on web projects—because browsers only understand JavaScript or WebAssembly. In this project, I wanted to build a landing site, a user console site, and a desktop app. So it made sense to include them in the tech stack. They offer strong IDE support, a reliable runtime with great debugging tools, and access to a large ecosystem of libraries.
 
 While WebAssembly is a promising technology, I felt it wasn’t mature enough (in the context of an early-stage startup) to fully rely on. Many languages support WebAssembly, but none are as stable or widely adopted for the web as JavaScript and TypeScript.
 
