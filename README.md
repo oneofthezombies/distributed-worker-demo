@@ -1,6 +1,6 @@
 # Distributed Worker Demo
 
-Distributed Worker Demo is a system demo that runs distributed tasks remotely and saves their results and logs.
+This is a system demo that runs distributed tasks remotely and saves their results and logs.
 
 > In real projects, mobile game/app and desktop web browser tests are run remotely in a distributed manner, and their results and logs are collected.
 > See the [dogu](https://github.com/dogu-team/dogu) project.
