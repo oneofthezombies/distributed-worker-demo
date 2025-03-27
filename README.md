@@ -32,9 +32,9 @@ This demo consists of two components: the **Agent** and the **Agent API**.
 
 ![Sequence diagram](/images/sequence_diagram.svg)
 
-## What Technologies Were Used?
+## What Technologies Are Used?
 
-This demo was built with TypeScript (Node.js), the HTTP protocol, and PostgreSQL.  
+This demo is built with TypeScript (Node.js), the HTTP protocol, and PostgreSQL.  
 Here's why I decided to use each of them.
 
 ### Why TypeScript?
