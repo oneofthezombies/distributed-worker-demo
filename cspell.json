@@ -11,5 +11,5 @@
     ".devcontainer/devcontainer.json",
     ".devcontainer/Dockerfile"
   ],
-  "words": ["dotenv", "dogu"]
+  "words": ["dotenv", "dogu", "tocstop"]
 }

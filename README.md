@@ -7,13 +7,18 @@ This is a simple system that runs distributed tasks remotely and collects their 
 
 ## Table of Contents
 
+<!-- toc -->
+
 - [System Design](#system-design)
   - [System Architecture Diagram](#system-architecture-diagram)
   - [Sequence Diagram](#sequence-diagram)
-- [What Technologies Were Used?](#what-technologies-were-used)
+- [What Technologies Are Used?](#what-technologies-are-used)
   - [Why TypeScript?](#why-typescript)
-  - [Why HTTP?](#why-http)
+  - [Why HTTP/1.1?](#why-http11)
   - [Why PostgreSQL?](#why-postgresql)
+  - [Why Node.js cluster?](#why-nodejs-cluster)
+
+<!-- tocstop -->
 
 ## System Design
 
@@ -51,14 +56,43 @@ For the desktop app, I used Electron—which meant I could also write it entirel
 
 Later on, I added support for game and mobile automation using other languages like C# (Unity), Kotlin (Android), Swift (iOS), and Python (scripting). But even then, the core logic remained in TypeScript and communicated with those other languages over HTTP or WebSocket, keeping their code simple and minimizing complexity.
 
-### Why HTTP?
+### Why HTTP/1.1?
 
-TODO
+I considered three protocols for communication between the Agent and the Agent API: HTTP/1.1, WebSocket, and gRPC.
+In the end, I chose HTTP/1.1.
+
+HTTP/1.1 is the protocol that web browsers use to communicate with servers.
+Since web browsers understand JavaScript, WebAssembly, HTTP/1.1, and WebSocket, it made sense to align with that.
+Just like I chose JavaScript/TypeScript for the language, choosing HTTP/1.1 and WebSocket helped me keep the tech stack simple and consistent.
+This is important for early-stage startups, where focusing on product development is more valuable than managing complex infrastructure.
+
+At first, I built a prototype using gRPC.
+It has many advantages, especially because it’s based on HTTP/2 and uses Protobuf for fast binary communication.
+But I realized it wasn’t the right tool for my use case.
+Protobuf made debugging harder.
+CLI/GUI tools for testing and debugging gRPC weren’t very satisfying.
+At the time, gRPC Server Reflection wasn’t available, so I had to load .proto files manually every time.
+Also, Protobuf isn’t only for gRPC—so if I need fast binary encoding, I can still use Protobuf in HTTP/1.1 or WebSocket payloads.
+That’s why I decided not to use gRPC for this project.
+
+I also tried using WebSocket for task fetching.
+The Agent opened a WebSocket connection and sent pull_task events (with unique event IDs) to the server.
+But it felt like I was reinventing HTTP.
+Since this was a request-response pattern, I realized HTTP/1.1 was a better fit.
+Alternatively, I could’ve used a server-push model where the Agent receives push_task events through WebSocket (or Server-Sent Events).
+But that meant the server would need to decide which Agent should receive each task.
+This would require a scheduler to generate and manage those events.
+Also, since WebSocket keeps a persistent connection open, the Agent API would have to forward those events to the right Agent.
+To avoid that complexity, I chose to use HTTP/1.1 for the Agent API.
+
+Later, I added a heartbeat system and scheduler to check if an Agent is online or if a task is running.
+Still, if something can be built with request-response, I used HTTP/1.1.
+Only when a publish-subscribe model is truly needed, I used WebSocket.
 
 ### Why PostgreSQL?
 
 TODO
 
-### Why I Didn't Use Kubernetes (Yet)
+### Why Node.js cluster?
 
 TODO
