@@ -73,7 +73,7 @@ Also, Protobuf isn’t only for gRPC—so if I need fast binary encoding, I can 
 That’s why I decided not to use gRPC for this project.
 
 I also tried using WebSocket for task fetching.
-The Agent opened a WebSocket connection and sent pull_task events (with unique event IDs) to the server.
+The Agent opened a WebSocket connection and sent `pull_task` events (with unique event IDs) to the server.
 But it felt like I was reinventing HTTP.
 Since this was a request-response pattern, I realized HTTP/1.1 was a better fit.
 Alternatively, I could’ve used a server-push model where the Agent receives `push_task` events through WebSocket (or Server-Sent Events).
