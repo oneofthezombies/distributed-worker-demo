@@ -5,8 +5,6 @@ import { and, eq, isNull } from "drizzle-orm/expressions";
 import { gunzip } from "node:zlib";
 import { Buffer } from "node:buffer";
 import { promisify } from "node:util";
-import cluster from "node:cluster";
-import os from "node:os";
 import { z } from "zod";
 import { TaskLog, UpdateTaskStatus } from "@internal/agent-core";
 import express, {
@@ -15,36 +13,25 @@ import express, {
   type Response as ResponseEx,
 } from "express";
 
+const gunzipAsync = promisify(gunzip);
+
 type Db = ReturnType<typeof drizzle>;
 const TaskId = z.preprocess((val) => Number(val), z.number().int());
 type TaskId = z.infer<typeof TaskId>;
 
-const WorkerEvent = z.discriminatedUnion("kind", [
-  z.object({
-    kind: z.literal("taskLogAdded"),
-    byteLength: z.number(),
-  }),
-]);
-type WorkerEvent = z.infer<typeof WorkerEvent>;
-
-const DEMO_WORKER_COUNT = Math.floor(os.cpus().length / 2);
 const DEMO_TASK_COUNT = 2;
 const env = parseEnv();
 
-if (cluster.isPrimary) {
-  await primaryMain();
-} else {
-  await workerMain();
-}
+// log collection measurement (byteLength/sec)
+const logCollectionMeasurement = {
+  INTERVAL_MS: 1000,
+  byteLength: 0,
+  maxByteLength: 0,
+};
 
-async function primaryMain() {
-  // log collection measurement (byteLength/sec)
-  const logCollectionMeasurement = {
-    INTERVAL_MS: 1000,
-    byteLength: 0,
-    maxByteLength: 0,
-  };
+await main();
 
+async function main() {
   const db = drizzle(env.databaseUrl);
   await initDemoDb(db);
 
@@ -54,60 +41,14 @@ async function primaryMain() {
     logCollectionMeasurement.byteLength = 0;
     if (byteLength > maxByteLength) {
       logCollectionMeasurement.maxByteLength = byteLength;
+
       console.log(
-        `Max measurement value: ${toReadableByteLength(
+        `Max log collection performance: ${toReadableByteLength(
           byteLength
         )}/s ${byteLength} B/s`
       );
     }
   }, logCollectionMeasurement.INTERVAL_MS);
-
-  cluster.on("message", (_, messageRaw) => {
-    WorkerEvent.parseAsync(messageRaw).then((message) => {
-      const { kind } = message;
-      if (kind === "taskLogAdded") {
-        const { byteLength } = message;
-        logCollectionMeasurement.byteLength += byteLength;
-      } else {
-        console.error("Unexpected worker message kind.", kind);
-      }
-    });
-  });
-
-  for (let i = 0; i < DEMO_WORKER_COUNT; i++) {
-    cluster.fork();
-  }
-
-  process.on("SIGINT", async () => {
-    console.log("SIGINT received. Shutting down all workers...");
-
-    const shutdownPromises: Promise<void>[] = [];
-    for (const id in cluster.workers) {
-      const worker = cluster.workers[id];
-      if (worker) {
-        shutdownPromises.push(
-          new Promise((resolve) => {
-            worker.on("exit", () => {
-              console.log(`Worker ${worker.process.pid} exited.`);
-              resolve();
-            });
-
-            worker.process.kill("SIGINT");
-          })
-        );
-      }
-    }
-
-    await Promise.all(shutdownPromises);
-    console.log("All workers shut down. Exiting main process.");
-
-    clearInterval(measureIntervalId);
-    process.exit(0);
-  });
-}
-
-async function workerMain() {
-  const db = drizzle(env.databaseUrl);
 
   const app = express();
   app.use(gzipBodyParser);
@@ -134,29 +75,26 @@ async function workerMain() {
     const body = await TaskLog.parseAsync(req.body);
     await addTaskLog(db, taskId, body);
 
-    process.send!({
-      kind: "taskLogAdded",
-      byteLength: new TextEncoder().encode(body.content).byteLength,
-    } satisfies WorkerEvent);
+    logCollectionMeasurement.byteLength += new TextEncoder().encode(
+      body.content
+    ).byteLength;
 
     res.json({});
   });
 
   const server = await new Promise<ReturnType<typeof app.listen>>((resolve) => {
     const server = app.listen(3000, () => {
-      console.log("Agent API listen on 3000");
+      console.log("Server listen on 3000");
       resolve(server);
     });
   });
 
-  let shuttingDown = false;
-
+  let shutdownRequested = false;
   await new Promise<void>((resolve) => {
     process.on("SIGINT", () => {
-      if (shuttingDown) return;
-      shuttingDown = true;
-
-      console.log("SIGINT received. Shutting down server...");
+      if (shutdownRequested) return;
+      shutdownRequested = true;
+      console.log("Received shutdown signal.");
 
       server.close((err) => {
         if (err) {
@@ -164,12 +102,12 @@ async function workerMain() {
         } else {
           console.log("Server finished.");
         }
-
         resolve();
       });
     });
   });
 
+  clearInterval(measureIntervalId);
   process.exit(0);
 }
 
@@ -275,7 +213,7 @@ export async function gzipBodyParser(
   req.on("end", async () => {
     try {
       const buffer = Buffer.concat(chunks);
-      const decompressed = await promisify(gunzip)(buffer);
+      const decompressed = await gunzipAsync(buffer);
       Reflect.set(req, "rawBody", decompressed);
       next();
     } catch (err) {

@@ -12,6 +12,8 @@ import {
   UpdateTaskStatus,
 } from "@internal/agent-core";
 
+const gzipAsync = promisify(gzip);
+
 const Task = z.object({
   id: z.number().int(),
   command: z.string(),
@@ -31,9 +33,11 @@ async function main() {
   const { signal } = controller;
   let shutdownRequested = false;
   process.on("SIGINT", () => {
-    console.log("Received shutdown signal.");
-    controller.abort();
+    if (shutdownRequested) return;
     shutdownRequested = true;
+    console.log("Received shutdown signal.");
+
+    controller.abort();
   });
 
   let taskProcessorCount = 0;
@@ -140,7 +144,7 @@ function runTask(signal: AbortSignal, task: Task) {
           let body;
           if (env.enableLogCompression) {
             headers.set("Content-Encoding", "gzip");
-            body = await promisify(gzip)(stringified);
+            body = await gzipAsync(stringified);
           } else {
             body = stringified;
           }
