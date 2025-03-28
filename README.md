@@ -16,7 +16,7 @@ This is a simple system that runs distributed tasks remotely and collects their 
   - [Why TypeScript?](#why-typescript)
   - [Why HTTP/1.1?](#why-http11)
   - [Why PostgreSQL?](#why-postgresql)
-  - [Why Node.js cluster?](#why-nodejs-cluster)
+  - [Why Node.js Cluster?](#why-nodejs-cluster)
 
 <!-- tocstop -->
 
@@ -90,6 +90,6 @@ Only when a publish-subscribe model is truly needed, I used WebSocket.
 
 TODO
 
-### Why Node.js cluster?
+### Why Node.js Cluster?
 
 TODO
