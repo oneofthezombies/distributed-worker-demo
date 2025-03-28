@@ -16,7 +16,6 @@ This is a simple system that runs distributed tasks remotely and collects their 
   - [Why TypeScript?](#why-typescript)
   - [Why HTTP/1.1?](#why-http11)
   - [Why Postgres?](#why-postgres)
-  - [Why Node.js Cluster?](#why-nodejs-cluster)
 
 <!-- tocstop -->
 
@@ -96,17 +95,10 @@ I had experience managing Elasticsearch in a previous job.
 While it worked great as a log database, it definitely required ongoing maintenance and resources.
 
 So I tested if Postgres could handle the task log storage requirements.
-In the first test, I sent one log line at a time.
-The number of requests became too high, and logs started to pile up on the Agent side.
-In the second test, I sent logs in batches.
-This reduced the number of requests, and the Agent was able to send logs without delays.
+I eventually optimized the process by sending task logs in batches to reduce the number of requests, and by compressing the HTTP payloads using gzip to reduce the amount of data being sent.
 
 Even if HTTP requests are sent in order, Postgres does not guarantee that the logs will be saved in the same order.
 To solve this, I added an `index` to each log batch so that logs could be queried in the correct order later.
 
 In the end, Postgres was able to meet the requirements.
 I avoided adding extra infrastructure, and I could still use the simple HTTP API approach, which also works well with horizontal scaling.
-
-### Why Node.js Cluster?
-
-TODO
