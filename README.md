@@ -48,7 +48,7 @@ TypeScript is a superset of JavaScript, and understanding JavaScript is essentia
 
 While WebAssembly is a promising technology, it feels like it’s not quite mature enough yet—especially for an early-stage startup. Many languages support WebAssembly, but none are as stable or widely adopted for the web as JavaScript and TypeScript.
 
-I chose TypeScript (instead of plain JavaScript) for both the frontend and backend. The reason is simple: **type checking**. In the early stages of a startup, interfaces change frequently. With TypeScript, I could confidently redesign shared types between frontend and backend without worrying about breaking things silently.
+I chose TypeScript (instead of plain JavaScript) for both the frontend and backend. The reason is simple: type checking. In the early stages of a startup, interfaces change frequently. With TypeScript, I could confidently redesign shared types between frontend and backend without worrying about breaking things silently.
 
 Using the same language for both frontend and backend also made the development environment simpler. It unified tools like the IDE, debugger, and build/deployment process, which made everything easier to manage.
 
