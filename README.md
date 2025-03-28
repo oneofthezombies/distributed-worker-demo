@@ -15,7 +15,7 @@ This is a simple system that runs distributed tasks remotely and collects their 
 - [What Technologies Are Used?](#what-technologies-are-used)
   - [Why TypeScript?](#why-typescript)
   - [Why HTTP/1.1?](#why-http11)
-  - [Why PostgreSQL?](#why-postgresql)
+  - [Why Postgres?](#why-postgres)
   - [Why Node.js Cluster?](#why-nodejs-cluster)
 
 <!-- tocstop -->
@@ -39,7 +39,7 @@ This demo consists of two components: the **Agent** and the **Agent API**.
 
 ## What Technologies Are Used?
 
-This demo is built with TypeScript (Node.js), the HTTP protocol, and PostgreSQL.  
+This demo is built with TypeScript (Node.js), the HTTP protocol, and Postgres Database.  
 Here's why I decided to use each of them.
 
 ### Why TypeScript?
@@ -86,7 +86,7 @@ Later, I added a heartbeat system and scheduler to check if an Agent is online o
 Still, if something can be built with request-response, I used HTTP/1.1.
 Only when a publish-subscribe model is truly needed, I used WebSocket.
 
-### Why PostgreSQL?
+### Why Postgres?
 
 TODO
 
