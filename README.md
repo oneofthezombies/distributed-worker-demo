@@ -58,8 +58,7 @@ Later on, I added support for game and mobile automation using other languages l
 
 ### Why HTTP/1.1?
 
-I considered three protocols for communication between the Agent and the Agent API: HTTP/1.1, WebSocket, and gRPC.
-In the end, I chose HTTP/1.1.
+After considering three protocols for communication between the Agent and the Agent API—HTTP/1.1, WebSocket, and gRPC—I ultimately chose HTTP/1.1.
 
 HTTP/1.1 is the protocol that web browsers use to communicate with servers.
 Since web browsers understand JavaScript, WebAssembly, HTTP/1.1, and WebSocket, it made sense to align with that.
@@ -68,9 +67,7 @@ This is important for early-stage startups, where focusing on product developmen
 
 At first, I built a prototype using gRPC.
 It has many advantages, especially because it’s based on HTTP/2 and uses Protobuf for fast binary communication.
-But I realized it wasn’t the right tool for my use case.
-Protobuf made debugging harder.
-CLI/GUI tools for testing and debugging gRPC weren’t very satisfying.
+However, I found that the debugging process was more challenging than expected, as Protobuf made it harder to troubleshoot, and CLI/GUI tools for testing and debugging gRPC weren’t very satisfying.
 At the time, gRPC Server Reflection wasn’t available, so I had to load .proto files manually every time.
 Also, Protobuf isn’t only for gRPC—so if I need fast binary encoding, I can still use Protobuf in HTTP/1.1 or WebSocket payloads.
 That’s why I decided not to use gRPC for this project.
@@ -79,7 +76,7 @@ I also tried using WebSocket for task fetching.
 The Agent opened a WebSocket connection and sent pull_task events (with unique event IDs) to the server.
 But it felt like I was reinventing HTTP.
 Since this was a request-response pattern, I realized HTTP/1.1 was a better fit.
-Alternatively, I could’ve used a server-push model where the Agent receives push_task events through WebSocket (or Server-Sent Events).
+Alternatively, I could’ve used a server-push model where the Agent receives `push_task` events through WebSocket (or Server-Sent Events).
 But that meant the server would need to decide which Agent should receive each task.
 This would require a scheduler to generate and manage those events.
 Also, since WebSocket keeps a persistent connection open, the Agent API would have to forward those events to the right Agent.
