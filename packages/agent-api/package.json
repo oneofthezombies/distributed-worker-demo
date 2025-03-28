@@ -2,8 +2,8 @@
   "name": "@internal/agent-api",
   "type": "module",
   "scripts": {
-    "db:sync": "drizzle-kit push",
-    "start": "node --experimental-transform-types --no-warnings src/main.ts"
+    "db-sync": "drizzle-kit push",
+    "start": "scripts/start.sh"
   },
   "dependencies": {
     "@internal/agent-core": "0.0.0",

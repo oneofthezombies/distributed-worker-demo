@@ -214,7 +214,7 @@ export async function gzipBodyParser(
     try {
       const buffer = Buffer.concat(chunks);
       const decompressed = await gunzipAsync(buffer);
-      Reflect.set(req, "rawBody", decompressed);
+      getContext(req).set("rawBody", decompressed);
       next();
     } catch (err) {
       console.error("Gzip decompression failed.", err);
@@ -232,7 +232,7 @@ export async function jsonBodyParser(
     return next();
   }
 
-  const rawBody = Reflect.get(req, "rawBody") as Buffer | undefined;
+  const rawBody = getContext(req).get("rawBody") as Buffer | undefined;
   if (rawBody) {
     try {
       req.body = JSON.parse(rawBody.toString("utf-8"));
@@ -243,4 +243,12 @@ export async function jsonBodyParser(
   } else {
     express.json({ limit: "1mb" })(req, res, next);
   }
+}
+
+function getContext(request: RequestEx): Map<string, any> {
+  if (!Reflect.has(request, "context")) {
+    Reflect.set(request, "context", new Map<string, any>());
+  }
+
+  return Reflect.get(request, "context");
 }

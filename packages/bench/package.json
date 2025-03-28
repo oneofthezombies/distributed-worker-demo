@@ -2,7 +2,8 @@
   "name": "bench",
   "type": "module",
   "scripts": {
-    "start": "k6 run bench.js"
+    "gen-log": "node --experimental-transform-types --no-warnings gen-log.ts",
+    "bench": "k6 run bench.js"
   },
   "dependencies": {
     "@types/k6": "1.0.1"

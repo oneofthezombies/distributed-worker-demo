@@ -1,9 +1,8 @@
 import http from "k6/http";
 import { check } from "k6";
 
-const TASK_LOG_LENGTH = 512 * 1024;
 const url = `http://localhost:3000/tasks/1/logs`;
-const content = "a".repeat(TASK_LOG_LENGTH);
+const content = open("temp/task_log.txt");
 const payload = JSON.stringify({
   kind: "stdout",
   index: 0,
@@ -13,7 +12,7 @@ const params = {
   headers: {
     "Content-Type": "application/json",
   },
-  // compression: "gzip",
+  compression: "gzip",
 };
 
 export const options = {
