@@ -24,8 +24,9 @@ This is a simple system that runs distributed tasks remotely and collects their 
 This demo consists of two components: the **Agent** and the **Agent API**.
 
 - The **Agent** sends HTTP requests to the Agent API to fetch tasks, execute them, and upload the results and logs.
+- The Agent sends task logs in **batches** and compresses them using **gzip** to reduce the number of requests and minimize network usage.
 - Each Agent can process **N tasks in parallel**.
-- The **Agent API** is a **multi-process server** that shares a single port to efficiently handle gzip decompression.
+- The Agent API is a Node.js server that sets `UV_THREADPOOL_SIZE` equal to the number of CPU cores to efficiently **gunzip** (decompress) the incoming data in parallel.
 - Both the Agent and the Agent API are **horizontally scalable**.
 
 ### System Architecture Diagram
